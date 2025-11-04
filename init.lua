@@ -1,17 +1,9 @@
---- Notes
+--- Note
 --- Welcome to my attempt to reach an IDE like full development experience.
 --- I want to use as few plugins as possible and have the code explained.
 
---- ===============================================
----                 NATIVE VS PLUGIN
---- ===============================================
---- Lsp:              X
---- Statusline        X
---- Completion                  X (Blink.cmp)
---- File explorer     X
-
 --- TODO:
---- - Read native lsp configuration
+--- X Read native lsp configuration
 --- - Read native diagnostics section
 --- - Read native statusline section
 --- - Read blink.cmp docs
@@ -22,6 +14,9 @@
 --------------------------------------------------------------------------------
 --- Global  ====================================================================
 vim.g.mapleader = " "
+vim.g.netrw_keepdir = 0               --- only mx on files in current buffer
+vim.g.netrw_winsize = 30
+vim.g.netrw_localcopydircmd = 'cp -r' -- copy directories
 
 --- General ====================================================================
 local o = vim.opt
@@ -69,13 +64,14 @@ local map = vim.keymap.set
 local s = { silent = true }
 map("n", "<space>", "<Nop>")
 map("n", "<esc>", "<cmd>nohlsearch<CR>") -- Clear highlight
-map("n", "<Leader>fo", ":lua vim.lsp.buf.format()<CR>", s)
+map("n", "<Leader>fo", ":lua vim.lsp.buf.format()<CR>")
 map("n", "<leader>ps", '<cmd>lua vim.pack.update()<CR>')
 map("n", "<leader>t", ":vsplit<CR>", { desc = "Vertical split" })
 map("n", "<leader>r", ":split<CR>", { desc = "Horizontal split" })
 
 --- Files ======================================================================
-map("n", "<leader>e", "<cmd>Ex %:p:h<CR>") -- Open Netrw in current files dir
+map("n", "<leader>e", "<cmd>Ex %:p:h<CR>")        -- Open Netrw in current files dir
+map("n", "<leader>le", "<cmd>Lexplore %:p:h<CR>") -- Open Netrw in current files dir
 
 --- Navigation =================================================================
 map("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
@@ -105,7 +101,32 @@ vim.pack.add({
   { src = "https://github.com/lewis6991/gitsigns.nvim" },
   { src = "https://github.com/saghen/blink.cmp",       version = vim.version.range("^1") },
   { src = "https://github.com/spaceduck-theme/nvim",   name = "spaceduck" },
-  -- { src = "https://github.com/nvim-treesitter/nvim-treesitter", name = "main" },
+
+  -- Mini =====================================================================
+  { src = "https://github.com/nvim-mini/mini.pairs" },   --- Autoclose pairs
+  { src = "https://github.com/nvim-mini/mini.starter" }, --- Start menu
+})
+
+require("mini.starter").setup({
+  autoopen = true,
+  items = {},
+  header = function()
+    local v = vim.version()
+    local versionstring = string.format("  Neovim Version: %d.%d.%d", v.major, v.minor, v.patch)
+    local image = [[
+┌─────────────────────────────────────────┐
+│                                         │
+│    ███╗   ███╗██╗   ██╗██╗███╗   ███╗   │
+│    ████╗ ████║██║   ██║██║████╗ ████║   │
+│    ██╔████╔██║██║   ██║██║██╔████╔██║   │
+│    ██║╚██╔╝██║╚██╗ ██╔╝██║██║╚██╔╝██║   │
+│    ██║ ╚═╝ ██║ ╚████╔╝ ██║██║ ╚═╝ ██║   │
+│    ╚═╝     ╚═╝  ╚═══╝  ╚═╝╚═╝     ╚═╝   │
+└─────────────────────────────────────────┘
+]]
+    local finalimage = image .. versionstring
+    return finalimage
+  end
 })
 
 -- NOTE:
@@ -133,6 +154,8 @@ require('blink.cmp').setup({
   sources = { default = { "lsp" } }
 })
 
+require('mini.pairs').setup()
+
 vim.cmd.colorscheme("spaceduck")
 
 ---=============================================================================
@@ -142,7 +165,13 @@ vim.cmd.colorscheme("spaceduck")
 vim.lsp.enable({
   "lua_ls",
 })
-vim.diagnostic.config({ virtual_text = true })
+vim.diagnostic.config({
+  virtual_text = true,
+  signs = true,
+  underline = true,
+  update_in_insert = true,
+  severity_sort = true
+})
 
 --- Statusline ====================================================================
 Statusline = {}
@@ -172,6 +201,19 @@ autocmd('TextYankPost', {
   group = highlight_group,
 })
 
+--- File =======================================================================
+-- Auto format before save
+local lsp_format_group = vim.api.nvim_create_augroup("LspAutoFormat", { clear = true })
+vim.api.nvim_create_autocmd("BufWritePre", {
+  group = lsp_format_group,
+  callback = function(event)
+    local client = vim.lsp.get_clients({ bufnr = event.buf })[1]
+    if client and client:supports_method("textDocument/formatting") then
+      vim.lsp.buf.format({ async = false })
+    end
+  end,
+})
+--- Statusline =================================================================
 local group = augroup("Statusline", { clear = true })
 
 autocmd({ "WinEnter", "BufEnter" }, {
@@ -189,3 +231,39 @@ autocmd({ "WinLeave", "BufLeave" }, {
     vim.opt_local.statusline = "%!v:lua.Statusline.inactive()"
   end,
 })
+
+--- File Explorer ==============================================================
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "netrw",
+  callback = function()
+    local bs = { buffer = true, silent = true }
+    local bsr = { buffer = true, remap = true, silent = true }
+    map('n', '<C-c>', '<cmd>bd<CR>', bs) -- Close the current Netrw buffer
+    map('n', '<Tab>', 'mf', bsr)         -- Mark the file/directory to the mark list
+    map('n', '<S-Tab>', 'mF', bsr)       -- Unmark all the files/directories
+    -- Improved file creation
+    map('n', '%', function()
+      local dir = vim.b.netrw_curdir or vim.fn.expand('%:p:h')
+      vim.ui.input({ prompt = 'Enter filename: ' }, function(input)
+        if input and input ~= '' then
+          local filepath = dir .. '/' .. input
+          vim.cmd('!touch ' .. vim.fn.shellescape(filepath))
+          vim.api.nvim_feedkeys('<C-l>', 'n', false)
+        end
+      end)
+    end, { buffer = true, silent = true })
+  end
+})
+
+-- --- Auto complete ==============================================================
+-- NOTE:
+-- Tested with native autocomplete and it's pretty shite.
+-- vim.api.nvim_create_autocmd('LspAttach', {
+--   callback = function(ev)
+--     local client = vim.lsp.get_client_by_id(ev.data.client_id)
+--     if client and client:supports_method('textDocument/completion') then
+--       vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
+--     end
+--   end,
+-- })
+--

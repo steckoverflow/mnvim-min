@@ -7,6 +7,7 @@ A fun project but with the ambition to be used for daily driving.
 - Well documented but opinonated.
 
 ## Pre-requisites
+- Neovim nightly 0.12
 - True color terminal (I'm using Ghostty)
 - Nerdfont
 - Git
@@ -16,6 +17,17 @@ A fun project but with the ambition to be used for daily driving.
 |--------------|---------|---------|
 | Lsp          |    X    |         |
 | Statusline   |    X    |         |
-| Completion   |         |    X    |
+| Completion   |         |    X*   |
 | File Exp     |    X    |         |
+|----------------------------------|
+
+NOTE:
+For completion we use blink.cmp instead. Tried with native auto complete
+from lsp, but experience is pretty poor. No fuzzy typing and shit sorting.
+Check for notes in comments and try for yourself.
+
+## Mini plugins
+- Auto pairs
+- Starter screen
+
 
