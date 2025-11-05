@@ -30,4 +30,14 @@ Check for notes in comments and try for yourself.
 - Auto pairs
 - Starter screen
 
+# Have this as an alternative to ordinarie nvim config
+```sh
+# setup bob
+brew install bob
 
+# bob install nightly
+bob install nightly
+
+# you can alias this config (in my case in my .zshrc)
+alias mvim='NVIM_APPNAME=mnvim-min bob run nightly'
+```
