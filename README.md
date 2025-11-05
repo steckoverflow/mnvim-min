@@ -19,7 +19,6 @@ A fun project but with the ambition to be used for daily driving.
 | Statusline   |    X    |         |
 | Completion   |         |    X*   |
 | File Exp     |    X    |         |
-|----------------------------------|
 
 NOTE:
 For completion we use blink.cmp instead. Tried with native auto complete

@@ -9,6 +9,16 @@
 --- - Read blink.cmp docs
 --- - Add readme with deps, bob, hint
 
+--- Missing features
+--- X Todo comments
+--- - Todo comments shortcuts and finding
+--- - Fix starter screen
+--- - Quick search & Fuzzy finding
+--- - Debugging support
+--- - Lsp for Golang, Python, HTML (Svelte, Tailwind)A
+--- - Better navigation
+--- - Key hints
+
 ---=============================================================================
 --- OPTIONS
 --------------------------------------------------------------------------------
@@ -98,18 +108,23 @@ end, { desc = "Kill terminals and exit" })
 --- Plugins ===================================================================
 vim.pack.add({
   { src = "https://github.com/mason-org/mason.nvim" },
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter.git", build = ":TSUpdate" },
   { src = "https://github.com/lewis6991/gitsigns.nvim" },
-  { src = "https://github.com/saghen/blink.cmp",       version = vim.version.range("^1") },
-  { src = "https://github.com/spaceduck-theme/nvim",   name = "spaceduck" },
+  { src = "https://github.com/saghen/blink.cmp",                    version = vim.version.range("^1") },
+  { src = "https://github.com/spaceduck-theme/nvim",                name = "spaceduck" },
 
   -- Mini =====================================================================
   { src = "https://github.com/nvim-mini/mini.pairs" },   --- Autoclose pairs
   { src = "https://github.com/nvim-mini/mini.starter" }, --- Start menu
+  { src = "https://github.com/nvim-mini/mini.clue" },    --- Mini clues
+
+  -- Optional =================================================================
+  { src = "https://github.com/folke/todo-comments.nvim" },
 })
 
 require("mini.starter").setup({
   autoopen = true,
-  items = {},
+  items = nil,
   header = function()
     local v = vim.version()
     local versionstring = string.format("  Neovim Version: %d.%d.%d", v.major, v.minor, v.patch)
@@ -151,12 +166,27 @@ require('blink.cmp').setup({
       auto_show = true,
     }
   },
+  experimental = { ghost_text = true },
   sources = { default = { "lsp" } }
 })
 
 require('mini.pairs').setup()
 
-vim.cmd.colorscheme("spaceduck")
+local miniclue = require('mini.clue')
+miniclue.setup({
+  triggers = {
+    -- Leader triggers
+    { mode = 'n', keys = '<Leader>' },
+  }
+})
+
+--- NOTE: not sure if needed. Lsp seems to have all the features I want.
+require("nvim-treesitter.configs").setup({
+  ensure_installed = { "lua" },
+  highlight = { enable = true },
+})
+
+require("todo-comments").setup()
 
 ---=============================================================================
 --- Builin
@@ -255,7 +285,7 @@ vim.api.nvim_create_autocmd("FileType", {
   end
 })
 
--- --- Auto complete ==============================================================
+-- --- Auto complete ===========================================================
 -- NOTE:
 -- Tested with native autocomplete and it's pretty shite.
 -- vim.api.nvim_create_autocmd('LspAttach', {
@@ -267,3 +297,6 @@ vim.api.nvim_create_autocmd("FileType", {
 --   end,
 -- })
 --
+--
+--- Final touches ===============================================================
+vim.cmd.colorscheme("spaceduck")
